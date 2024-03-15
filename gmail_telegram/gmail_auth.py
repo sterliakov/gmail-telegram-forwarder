@@ -16,6 +16,10 @@ LOGGER.setLevel(logging.INFO)
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
+class GmailNotConfiguredError(Exception):
+    """OAuth flow hasn't been completed yet."""
+
+
 def request_new_credentials(port=config.PORT):
     flow = Flow.from_client_secrets_file(
         config.GOOGLE_APP_CREDS_FILE,
@@ -27,6 +31,7 @@ def request_new_credentials(port=config.PORT):
     yield uri
     handler_cls, response = _make_handler_cls()
     server = HTTPServer(("", port), handler_cls)
+    server.timeout = 5 * 60
     server.handle_request()
     flow.fetch_token(code=response["code"])
 
@@ -48,8 +53,10 @@ def get_credentials():
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
+            with config.GOOGLE_CREDS_FILE.open("w") as token:
+                token.write(creds.to_json())
         else:
-            raise RuntimeError("No google credentials configured.")
+            raise GmailNotConfiguredError
 
     return creds
 

@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from filelock import FileLock
 
 from gmail_telegram import config
+from gmail_telegram.gmail_auth import GmailNotConfiguredError, get_credentials
 from gmail_telegram.gmail_read import read_emails
 from gmail_telegram.telegram import handle_telegram_starts, send_telegram_message
 
@@ -19,6 +20,12 @@ def transmit_all_to_telegram():
     can_forward = handle_telegram_starts()
     if not can_forward:
         LOGGER.warning("No destination set yet, skipping.")
+        return
+
+    try:
+        get_credentials()
+    except GmailNotConfiguredError:
+        LOGGER.warning("Gmail not configured yet")
         return
 
     with ThreadPoolExecutor() as pool:

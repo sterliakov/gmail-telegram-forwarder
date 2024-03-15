@@ -29,7 +29,9 @@ def send_telegram_message(email):
 
 
 def handle_telegram_starts():
-    already_connected = config.CHAT_ID_FILE.exists()
+    already_connected = (
+        config.CHAT_ID_FILE.exists() and config.GOOGLE_CREDS_FILE.exists()
+    )
     api_url = f"{API_ROOT}/getUpdates"
     with contextlib.suppress(FileNotFoundError):
         api_url += "?offset=" + str(int(config.LATEST_TG_UPDATE_FILE.read_text()) + 1)
@@ -48,7 +50,7 @@ def handle_telegram_starts():
             _send_message("Sorry, cannot connect now.", chat_id)
         raise RuntimeError("Got several messages. Only one account can be in use.")
     if result and already_connected:
-        LOGGER.warning("Got a new message, but an account is already connect.")
+        LOGGER.warning("Got a new message, but an account is already connected.")
         for chat_id in chat_ids:
             _send_message("Sorry, cannot connect now.", chat_id)
         return True
@@ -58,7 +60,7 @@ def handle_telegram_starts():
         config.CHAT_ID_FILE.write_text(str(chat_id))
         greet_user(chat_id)
 
-    return config.CHAT_ID_FILE.exists()
+    return config.GOOGLE_CREDS_FILE.exists()
 
 
 def greet_user(chat_id):
@@ -80,9 +82,7 @@ def _as_url(message: str, chat_id=None) -> str:
         except FileNotFoundError as exc:
             raise RuntimeError("Chat not set up yet.") from exc
 
-    return (
-        f"{API_ROOT}/sendMessage?chat_id={chat_id}&text={quote(message, safe='')}"
-    )
+    return f"{API_ROOT}/sendMessage?chat_id={chat_id}&text={quote(message, safe='')}"
 
 
 def _send_message(text, chat_id=None):
