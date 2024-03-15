@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import logging
 import pprint
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
-from email.utils import parsedate
+from email.utils import parsedate_to_datetime
 
 from googleapiclient.discovery import build
 
@@ -62,7 +61,7 @@ def _parse_message(msg):
         "subject": headers.get("Subject", "<No subject>"),
         "from": headers["From"],
         "snippet": msg["snippet"],
-        "date": datetime.fromtimestamp(time.mktime(parsedate(headers["Date"])), tz=UTC),
+        "date": parsedate_to_datetime(headers["Date"]),
         "id": msg["id"],
     }
 
