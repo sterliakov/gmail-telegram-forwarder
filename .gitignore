@@ -1,0 +1,14 @@
+app_credentials.json
+.temp_files
+
+.venv/
+venv/
+env/
+*.pyc
+*.sqlite3
+*~
+.env
+env.local
+.python-version
+.ruff_cache
+.mypy_cache
