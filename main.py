@@ -23,7 +23,7 @@ def transmit_all_to_telegram():
         return
 
     try:
-        get_credentials()
+        creds = get_credentials()
     except GmailNotConfiguredError:
         LOGGER.warning("Gmail not configured yet")
         return
@@ -31,7 +31,7 @@ def transmit_all_to_telegram():
     with ThreadPoolExecutor() as pool:
         jobs = {
             pool.submit(send_telegram_message, email): email["id"]
-            for email in read_emails()
+            for email in read_emails(creds)
         }
         if not jobs:
             LOGGER.info("No new messages.")

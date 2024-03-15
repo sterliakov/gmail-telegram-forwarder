@@ -11,15 +11,12 @@ from email.utils import parsedate_to_datetime
 from googleapiclient.discovery import build
 
 from . import config
-from .gmail_auth import get_credentials
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-def read_emails():
-    creds = get_credentials()
-
+def read_emails(creds):
     query = "is:unread newer_than:1d"
     service = build("gmail", "v1", credentials=creds)
     results = (
