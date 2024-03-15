@@ -23,10 +23,7 @@ def read_emails():
     query = "is:unread newer_than:1d"
     service = build("gmail", "v1", credentials=creds)
     results = (
-        service.users()
-        .messages()
-        .list(userId="me", labelIds=["INBOX"], q=query, maxResults=100)
-        .execute()
+        service.users().messages().list(userId="me", q=query, maxResults=100).execute()
     )
     messages = results.get("messages", [])
     last_visit = _get_last_run_time()
@@ -41,7 +38,7 @@ def read_emails():
             try:
                 result = future.result()
             except Exception:
-                LOGGER.exception("Failed to retrieve message %s", jobs["future"])
+                LOGGER.exception("Failed to retrieve message %s", jobs[future])
             else:
                 parsed = _parse_message(result)
                 if _is_new(parsed, last_visit):
