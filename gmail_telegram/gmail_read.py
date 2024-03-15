@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import pprint
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 
 from googleapiclient.discovery import build
@@ -23,8 +22,10 @@ def read_emails(creds):
         service.users().messages().list(userId="me", q=query, maxResults=100).execute()
     )
     messages = results.get("messages", [])
-    last_visit = _get_last_run_time()
-    _write_last_run_time()
+    try:
+        known = set(config.KNOWN_IDS_FILE.read_text().splitlines())
+    except FileNotFoundError:
+        known = set()
 
     with ThreadPoolExecutor() as pool:
         jobs = {
@@ -38,7 +39,7 @@ def read_emails(creds):
                 LOGGER.exception("Failed to retrieve message %s", jobs[future])
             else:
                 parsed = _parse_message(result)
-                if _is_new(parsed, last_visit):
+                if _is_new(parsed, known):
                     yield parsed
 
 
@@ -60,21 +61,8 @@ def _parse_message(msg):
     }
 
 
-def _is_new(parsed_message, last_visit):
-    return parsed_message["date"] >= last_visit
-
-
-def _get_last_run_time():
-    try:
-        timestamp = config.LAST_VISIT_FILE.stat().st_mtime
-    except FileNotFoundError:
-        return datetime.now(tz=UTC) - timedelta(days=1)
-    else:
-        return datetime.fromtimestamp(timestamp, tz=UTC)
-
-
-def _write_last_run_time():
-    config.LAST_VISIT_FILE.touch()
+def _is_new(parsed_message, known):
+    return parsed_message["id"] not in known
 
 
 if __name__ == "__main__":

@@ -28,6 +28,7 @@ def transmit_all_to_telegram():
         LOGGER.warning("Gmail not configured yet")
         return
 
+    notified = set()
     with ThreadPoolExecutor() as pool:
         jobs = {
             pool.submit(send_telegram_message, email): email["id"]
@@ -37,15 +38,21 @@ def transmit_all_to_telegram():
             LOGGER.info("No new messages.")
 
         for future in as_completed(jobs):
+            id_ = jobs[future]
             try:
                 future.result()
             except Exception:
                 LOGGER.exception(
                     "Failed to broadcast telegram message for email %s",
-                    jobs[future],
+                    id_,
                 )
             else:
-                LOGGER.info("Successfully notified about email %s.", jobs[future])
+                LOGGER.info("Successfully notified about email %s.", id_)
+                notified.add(id_)
+
+    with config.KNOWN_IDS_FILE.open("a") as log:
+        for id_ in notified:
+            log.write(f"{id_}\n")
 
 
 if __name__ == "__main__":
