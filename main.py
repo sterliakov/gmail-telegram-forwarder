@@ -14,7 +14,6 @@ from gmail_telegram.gmail_auth import (
 )
 from gmail_telegram.gmail_read import read_emails
 from gmail_telegram.telegram import (
-    greet_user,
     handle_telegram_starts,
     send_message,
     send_message_about_email,
@@ -37,8 +36,7 @@ def transmit_all_to_telegram():
         LOGGER.warning("Gmail not configured yet")
         return
     except GmailRefreshError:
-        send_message("Your Google token has expired.")
-        greet_user(None)
+        send_message("Your Google token has expired. Send me /start to sign in again.")
         return
 
     notified = set()
