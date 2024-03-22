@@ -7,9 +7,18 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from filelock import FileLock
 
 from gmail_telegram import config
-from gmail_telegram.gmail_auth import GmailNotConfiguredError, get_credentials
+from gmail_telegram.gmail_auth import (
+    GmailNotConfiguredError,
+    GmailRefreshError,
+    get_credentials,
+)
 from gmail_telegram.gmail_read import read_emails
-from gmail_telegram.telegram import handle_telegram_starts, send_telegram_message
+from gmail_telegram.telegram import (
+    greet_user,
+    handle_telegram_starts,
+    send_message,
+    send_message_about_email,
+)
 
 logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
@@ -27,11 +36,15 @@ def transmit_all_to_telegram():
     except GmailNotConfiguredError:
         LOGGER.warning("Gmail not configured yet")
         return
+    except GmailRefreshError:
+        send_message("Your Google token has expired.")
+        greet_user(None)
+        return
 
     notified = set()
     with ThreadPoolExecutor() as pool:
         jobs = {
-            pool.submit(send_telegram_message, email): email["id"]
+            pool.submit(send_message_about_email, email): email["id"]
             for email in read_emails(creds)
         }
         if not jobs:

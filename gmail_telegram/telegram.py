@@ -23,9 +23,9 @@ Short extract:
 """
 
 
-def send_telegram_message(email):
+def send_message_about_email(email):
     msg = MESSAGE_TEMPLATE.format(**email)
-    _send_message(msg)
+    send_message(msg)
 
 
 def handle_telegram_starts():
@@ -47,12 +47,12 @@ def handle_telegram_starts():
     chat_ids = {r["message"]["chat"]["id"] for r in result}
     if len(result) > 1:
         for chat_id in chat_ids:
-            _send_message("Sorry, cannot connect now.", chat_id)
+            send_message("Sorry, cannot connect now.", chat_id)
         raise RuntimeError("Got several messages. Only one account can be in use.")
     if result and already_connected:
         LOGGER.warning("Got a new message, but an account is already connected.")
         for chat_id in chat_ids:
-            _send_message("Sorry, cannot connect now.", chat_id)
+            send_message("Sorry, cannot connect now.", chat_id)
         return True
     if result:
         message = result[0]["message"]
@@ -65,14 +65,14 @@ def handle_telegram_starts():
 
 def greet_user(chat_id):
     if config.GOOGLE_CREDS_FILE.exists():
-        _send_message("Congrats! You're all set now.")
+        send_message("Congrats! You're all set now.")
         return
 
     creds_state_machine = request_new_credentials()
     url = next(creds_state_machine)
-    _send_message(f"Head to {url} to connect your GMail account.", chat_id)
+    send_message(f"Head to {url} to connect your GMail account.", chat_id)
     next(creds_state_machine)
-    _send_message("Congrats! You're all set now.", chat_id)
+    send_message("Congrats! You're all set now.", chat_id)
 
 
 def _as_url(message: str, chat_id=None) -> str:
@@ -85,7 +85,7 @@ def _as_url(message: str, chat_id=None) -> str:
     return f"{API_ROOT}/sendMessage?chat_id={chat_id}&text={quote(message, safe='')}"
 
 
-def _send_message(text, chat_id=None):
+def send_message(text, chat_id=None):
     url = _as_url(text, chat_id)
     requests.post(url, timeout=10).raise_for_status()
     return {"result": "OK"}

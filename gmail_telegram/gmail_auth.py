@@ -4,6 +4,7 @@ import logging
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -17,6 +18,10 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
 class GmailNotConfiguredError(Exception):
+    """OAuth flow hasn't been completed yet."""
+
+
+class GmailRefreshError(Exception):
     """OAuth flow hasn't been completed yet."""
 
 
@@ -52,9 +57,17 @@ def get_credentials():
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            with config.GOOGLE_CREDS_FILE.open("w") as token:
-                token.write(creds.to_json())
+            LOGGER.info("Refreshing google credentials...")
+            try:
+                creds.refresh(Request())
+            except RefreshError as exc:
+                LOGGER.warning("Credentials expired forever.")
+                config.GOOGLE_CREDS_FILE.unlink()
+                raise GmailRefreshError from exc
+            else:
+                LOGGER.info("Credentials refreshed.")
+                with config.GOOGLE_CREDS_FILE.open("w") as dest:
+                    dest.write(creds.to_json())
         else:
             raise GmailNotConfiguredError
 
