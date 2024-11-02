@@ -1,16 +1,15 @@
-FROM python:3.11-alpine as source
+FROM python:3.12-alpine AS source
 
-FROM source as build
+FROM source AS build
 
 WORKDIR /
-COPY requirements.txt .
-# hadolint ignore=SC1091
-RUN python -m pip install 'uv >= 0.1.21' --no-cache-dir && \
-    uv venv .venv && \
-    . .venv/bin/activate && \
-    uv pip sync requirements.txt
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+COPY uv.lock pyproject.toml /
+RUN --mount=type=cache,target=/root/.cache \
+    uv sync --no-dev --locked --no-install-project \
+    && uv pip install --no-cache-dir 'setuptools >= 69.1.1'
 
-FROM source as run
+FROM source AS run
 # hadolint ignore=DL3018
 RUN apk add --no-cache supercronic shadow
 COPY --from=build /.venv /.venv/
