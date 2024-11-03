@@ -3,34 +3,33 @@
 from __future__ import annotations
 
 import logging
-import pprint
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from email.utils import parsedate_to_datetime
 
 from googleapiclient.discovery import build
 
-from . import config
+from .gmail_auth import get_credentials
+from .storage import User, get_recent_known_ids
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-def read_emails(creds):
+def read_emails(user: User):
+    creds = get_credentials(user)
     query = "is:unread newer_than:1d"
     service = build("gmail", "v1", credentials=creds)
     results = (
         service.users().messages().list(userId="me", q=query, maxResults=100).execute()
     )
     messages = results.get("messages", [])
-    try:
-        known = set(config.KNOWN_IDS_FILE.read_text().splitlines())
-    except FileNotFoundError:
-        known = set()
+    known = get_recent_known_ids(user.chat_id)
 
     with ThreadPoolExecutor() as pool:
         jobs = {
             pool.submit(_retrieve_message, message["id"], creds): message["id"]
             for message in messages
+            if message["id"] not in known
         }
         for future in as_completed(jobs):
             try:
@@ -38,9 +37,7 @@ def read_emails(creds):
             except Exception:
                 LOGGER.exception("Failed to retrieve message %s", jobs[future])
             else:
-                parsed = _parse_message(result)
-                if _is_new(parsed, known):
-                    yield parsed
+                yield _parse_message(result)
 
 
 def _retrieve_message(message_id, creds):
@@ -59,12 +56,3 @@ def _parse_message(msg):
         "date": parsedate_to_datetime(headers["Date"]),
         "id": msg["id"],
     }
-
-
-def _is_new(parsed_message, known):
-    return parsed_message["id"] not in known
-
-
-if __name__ == "__main__":
-    for email in read_emails():
-        pprint.pprint(email)  # noqa: T203  # Console code

@@ -4,23 +4,17 @@ import os
 from pathlib import Path
 
 APP_ROOT = Path(__file__).parent.parent.resolve()
-TEMP_FILES_ROOT = APP_ROOT / ".temp_files"
 
-TEMP_FILES_ROOT.mkdir(exist_ok=True)
-CHAT_ID_FILE = TEMP_FILES_ROOT / "chat_id"
-LATEST_TG_UPDATE_FILE = TEMP_FILES_ROOT / "tg_polling"
-LOCK_FILE = TEMP_FILES_ROOT / "lock"
-GOOGLE_CREDS_FILE = TEMP_FILES_ROOT / "token.json"
-KNOWN_IDS_FILE = TEMP_FILES_ROOT / "known_ids"
-
+# FIXME: these should all go to secrets manager
+TELEGRAM_AUTH_TOKEN = "FIXME"  # noqa: S105
 GOOGLE_APP_CREDS_FILE = APP_ROOT / "app_credentials.json"
 
 BOT_SECRET = os.getenv("BOT_SECRET")
 if BOT_SECRET is None:
     raise RuntimeError("Bot secret must be set")
 
-HOST = os.getenv("GOOGLE_AUTH_HOST")
+HOST = os.getenv("HOST")
 if HOST is None:
     raise RuntimeError("Host must be set")
 
-PORT = int(os.getenv("GOOGLE_OAUTH_PORT", "9090"))
+GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
