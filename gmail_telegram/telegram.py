@@ -36,6 +36,7 @@ def handle_telegram_starts(event: dict[str, Any]) -> None:
     LOGGER.info("Message: %s", event)
     match event:
         case {"message": {"from": {"id": chat_id}, "text": text}}:
+            chat_id = str(chat_id)
             if text.strip() != "/start":
                 send_message("Unknown command: I only understand /start.", chat_id)
                 return
@@ -63,11 +64,11 @@ def active_user_for_chat(chat_id: str) -> User | None:
         return user
 
 
-def _as_url(message: str, chat_id: str) -> str:
+def _as_url(message: str, chat_id: str | int) -> str:
     return f"{API_ROOT}/sendMessage?chat_id={chat_id}&text={quote(message, safe='')}"
 
 
-def send_message(text: str, chat_id: str) -> None:
+def send_message(text: str, chat_id: str | int) -> None:
     url = _as_url(text, chat_id)
     requests.post(url, timeout=10).raise_for_status()
 
