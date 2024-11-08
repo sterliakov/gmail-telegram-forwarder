@@ -4,7 +4,10 @@ data "aws_iam_policy_document" "lambda_execution_policy" {
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = [aws_cloudwatch_log_group.main_logs.arn]
+    resources = [
+      aws_cloudwatch_log_group.main_logs.arn,
+      "${aws_cloudwatch_log_group.main_logs.arn}:*",
+    ]
   }
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
