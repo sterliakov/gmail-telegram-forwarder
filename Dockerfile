@@ -18,7 +18,8 @@ COPY entrypoint.sh /entrypoint.sh
 ADD --chmod=755 https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie /usr/local/bin/aws-lambda-rie
 
 COPY --from=build /.venv /.venv/
-COPY . /app
+WORKDIR /app
+COPY . ./
 ENV PATH="/.venv/bin:$PATH"
 
 ENTRYPOINT [ "/entrypoint.sh" ]
