@@ -1,10 +1,14 @@
 services:
+    tg_forwarder:
+        env_file: .env
+        build:
+            context: .
+        restart: unless-stopped
+
     ddb:
         image: amazon/dynamodb-local:latest
         working_dir: /home/dynamodblocal
         command: -jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data
-        ports:
-        -   8181:8000
         user: root
         volumes:
         -   ddb:/home/dynamodblocal/data

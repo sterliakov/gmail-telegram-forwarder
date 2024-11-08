@@ -16,7 +16,6 @@ from pynamodb.models import Model
 class User(Model):
     class Meta:
         table_name = "users"
-        host = "http://localhost:8181"
 
     chat_id = UnicodeAttribute(hash_key=True)
     last_update = NumberAttribute(null=True)
@@ -26,7 +25,6 @@ class User(Model):
 class TransmittedMessages(Model):
     class Meta:
         table_name = "messages"
-        host = "http://localhost:8181"
 
     day = UnicodeAttribute(null=True, hash_key=True)
     chat_id = UnicodeAttribute(range_key=True)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Annotated, Any
 
 from fastapi import FastAPI, Header, HTTPException
@@ -10,7 +9,6 @@ from gmail_telegram import config
 from gmail_telegram.gmail_auth import handle_oauth_callback
 from gmail_telegram.telegram import handle_telegram_starts
 
-logging.basicConfig()
 app = FastAPI()
 
 
@@ -22,15 +20,15 @@ class TelegramMessage(BaseModel):
 async def telegram_webhook(
     body: TelegramMessage,
     x_telegram_bot_api_secret_token: Annotated[str | None, Header()] = None,
-):
+) -> Any:
     token = x_telegram_bot_api_secret_token
     if token != config.TELEGRAM_AUTH_TOKEN:
         raise HTTPException(403, "Incorrect token")
-    handle_telegram_starts(body.dict())
+    handle_telegram_starts(body.model_dump())
     return {"success": True}
 
 
 @app.get("/google-oauth/")
-async def google_callback(code: str, state: str):
+async def google_callback(code: str, state: str) -> Any:
     handle_oauth_callback(code, state)
     return {"success": True}

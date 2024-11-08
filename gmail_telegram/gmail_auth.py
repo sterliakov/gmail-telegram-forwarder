@@ -27,12 +27,7 @@ class GmailRefreshError(Exception):
 
 
 def request_new_credentials(user: User) -> str:
-    flow = Flow.from_client_secrets_file(
-        config.GOOGLE_APP_CREDS_FILE,
-        config.GMAIL_SCOPES,
-        redirect_uri=GOOGLE_REDIRECT_URI,
-        state=user.chat_id,
-    )
+    flow = _create_flow(user)
     uri, _ = flow.authorization_url(access_type="offline")
     LOGGER.info("OAuth URL: %s", uri)
     return uri
@@ -40,18 +35,22 @@ def request_new_credentials(user: User) -> str:
 
 def handle_oauth_callback(code: str, state: str) -> User:
     user = User.get(state)
-    flow = Flow.from_client_secrets_file(
-        config.GOOGLE_APP_CREDS_FILE,
-        config.GMAIL_SCOPES,
-        redirect_uri=GOOGLE_REDIRECT_URI,
-        state=user.chat_id,
-    )
+    flow = _create_flow(user)
     flow.fetch_token(code=code)
 
     # Save the credentials for the next run
     user.gmail_auth = json.loads(flow.credentials.to_json())
     user.save()
     return user
+
+
+def _create_flow(user: User) -> Flow:
+    return Flow.from_client_config(
+        config.GOOGLE_APP_CREDS,
+        scopes=config.GMAIL_SCOPES,
+        redirect_uri=GOOGLE_REDIRECT_URI,
+        state=user.chat_id,
+    )
 
 
 def get_credentials(user: User) -> Credentials:

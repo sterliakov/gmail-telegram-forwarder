@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote, urljoin
 
 import requests
@@ -10,12 +10,15 @@ from . import config
 from .gmail_auth import request_new_credentials
 from .storage import User
 
+if TYPE_CHECKING:
+    from .gmail_read import MessageInfo
+
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 API_ROOT = f"https://api.telegram.org/bot{config.BOT_SECRET}"
 MESSAGE_TEMPLATE = """
-New email from {from}!
+New email from {from_}!
 
 # {subject}
 
@@ -24,12 +27,12 @@ Short extract:
 """
 
 
-def send_message_about_email(email: dict[str, Any], user: User) -> None:
+def send_message_about_email(email: MessageInfo, user: User) -> None:
     msg = MESSAGE_TEMPLATE.format(**email)
     send_message(msg, user.chat_id)
 
 
-def handle_telegram_starts(event) -> None:
+def handle_telegram_starts(event: dict[str, Any]) -> None:
     LOGGER.info("Message: %s", event)
     match event:
         case {"message": {"from": {"id": chat_id}, "text": text}}:
@@ -70,14 +73,11 @@ def send_message(text: str, chat_id: str) -> None:
 
 
 def create_webhook() -> None:
-    response = requests.post(
-        f"{API_ROOT}/setWebhook",
-        params={
-            "url": urljoin(config.HOST, "/tg-update/"),
-            "allowed_updates": ["message"],
-            "max_connections": 1,
-            "secret_token": config.TELEGRAM_AUTH_TOKEN,
-        },
-        timeout=10,
-    )
+    params: dict[str, Any] = {
+        "url": urljoin(config.HOST, "/tg-update/"),
+        "allowed_updates": ["message"],
+        "max_connections": 1,
+        "secret_token": config.TELEGRAM_AUTH_TOKEN,
+    }
+    response = requests.post(f"{API_ROOT}/setWebhook", params=params, timeout=10)
     response.raise_for_status()
