@@ -2,70 +2,42 @@
 from __future__ import annotations
 
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
-from filelock import FileLock
+from mangum import Mangum
 
-from gmail_telegram import config
-from gmail_telegram.gmail_auth import (
-    GmailNotConfiguredError,
-    GmailRefreshError,
-    get_credentials,
-)
-from gmail_telegram.gmail_read import read_emails
-from gmail_telegram.telegram import (
-    handle_telegram_starts,
-    send_message,
-    send_message_about_email,
-)
+from gmail_telegram import app, create_webhook, transmit_all_to_telegram
+
+if TYPE_CHECKING:
+    from mangum.types import LambdaContext, LambdaEvent
 
 logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-def transmit_all_to_telegram():
-    can_forward = handle_telegram_starts()
-    if not can_forward:
-        LOGGER.warning("No destination set yet, skipping.")
-        return
+class MangumExtended(Mangum):
+    def _patch_event_path(self, event: LambdaEvent) -> None:
+        real_path = event["rawPath"]
+        split_path = event["requestContext"]["http"]["path"]
+        # Lambda Function URL decides to remove trailing slash for some reason.
+        if urlparse(real_path).path.endswith("/") and not split_path.endswith("/"):
+            event["requestContext"]["http"]["path"] += "/"
 
-    try:
-        creds = get_credentials()
-    except GmailNotConfiguredError:
-        LOGGER.warning("Gmail not configured yet")
-        return
-    except GmailRefreshError:
-        send_message("Your Google token has expired. Send me /start to sign in again.")
-        return
+    def __call__(self, event: LambdaEvent, context: LambdaContext) -> dict[str, object]:
+        action = event.get("action")
+        if action == "CHECK":
+            transmit_all_to_telegram()
+            return {"success": True}
+        if action == "CREATE_WEBHOOK":
+            create_webhook()
+            return {"success": True}
+        if action is not None:
+            raise ValueError(f"Unknown action: {action}.")
 
-    notified = set()
-    with ThreadPoolExecutor() as pool:
-        jobs = {
-            pool.submit(send_message_about_email, email): email["id"]
-            for email in read_emails(creds)
-        }
-        if not jobs:
-            LOGGER.info("No new messages.")
-
-        for future in as_completed(jobs):
-            id_ = jobs[future]
-            try:
-                future.result()
-            except Exception:
-                LOGGER.exception(
-                    "Failed to broadcast telegram message for email %s",
-                    id_,
-                )
-            else:
-                LOGGER.info("Successfully notified about email %s.", id_)
-                notified.add(id_)
-
-    with config.KNOWN_IDS_FILE.open("a") as log:
-        for id_ in notified:
-            log.write(f"{id_}\n")
+        self._patch_event_path(event)
+        return super().__call__(event, context)
 
 
-if __name__ == "__main__":
-    with FileLock(config.LOCK_FILE):
-        transmit_all_to_telegram()
+handler = MangumExtended(app, lifespan="off")

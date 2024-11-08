@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urljoin
 
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
@@ -10,11 +10,12 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 
 from . import config
+from .storage import User
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+GOOGLE_REDIRECT_URI = urljoin(config.HOST, "/google-oauth/")
 
 
 class GmailNotConfiguredError(Exception):
@@ -25,34 +26,38 @@ class GmailRefreshError(Exception):
     """OAuth flow hasn't been completed yet."""
 
 
-def request_new_credentials(port=config.PORT):
-    flow = Flow.from_client_secrets_file(
-        config.GOOGLE_APP_CREDS_FILE,
-        SCOPES,
-        redirect_uri=config.HOST,
-    )
-    uri, _ = flow.authorization_url(access_type="offline")
+def request_new_credentials(user: User) -> str:
+    flow = _create_flow(user)
+    uri, _ = flow.authorization_url(access_type="offline", prompt="consent")
     LOGGER.info("OAuth URL: %s", uri)
-    yield uri
-    handler_cls, response = _make_handler_cls()
-    server = HTTPServer(("", port), handler_cls)
-    server.timeout = 5 * 60
-    server.handle_request()
-    flow.fetch_token(code=response["code"])
+    return uri
+
+
+def handle_oauth_callback(code: str, state: str) -> User:
+    user = User.get(state)
+    flow = _create_flow(user)
+    flow.fetch_token(code=code)
 
     # Save the credentials for the next run
-    with config.GOOGLE_CREDS_FILE.open("w") as token:
-        token.write(flow.credentials.to_json())
+    user.gmail_auth = json.loads(flow.credentials.to_json())
+    user.save()
+    return user
 
-    yield flow.credentials
+
+def _create_flow(user: User) -> Flow:
+    return Flow.from_client_config(
+        config.GOOGLE_APP_CREDS,
+        scopes=config.GMAIL_SCOPES,
+        redirect_uri=GOOGLE_REDIRECT_URI,
+        state=user.chat_id,
+    )
 
 
-def get_credentials():
+def get_credentials(user: User) -> Credentials:
     creds = None
-    if config.GOOGLE_CREDS_FILE.exists():
-        creds = Credentials.from_authorized_user_file(
-            str(config.GOOGLE_CREDS_FILE.resolve()),
-            SCOPES,
+    if user.gmail_auth:
+        creds = Credentials.from_authorized_user_info(
+            user.gmail_auth, config.GMAIL_SCOPES
         )
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
@@ -62,31 +67,12 @@ def get_credentials():
                 creds.refresh(Request())
             except RefreshError as exc:
                 LOGGER.warning("Credentials expired forever.")
-                config.GOOGLE_CREDS_FILE.unlink()
                 raise GmailRefreshError from exc
             else:
                 LOGGER.info("Credentials refreshed.")
-                with config.GOOGLE_CREDS_FILE.open("w") as dest:
-                    dest.write(creds.to_json())
+                user.gmail_auth = json.loads(creds.to_json())
+                user.save()
         else:
             raise GmailNotConfiguredError
 
     return creds
-
-
-def _make_handler_cls():
-    response = {}
-
-    class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):  # noqa: N802
-            nonlocal response
-            qs = urlparse(self.path).query
-            parsed = parse_qs(qs)
-            response |= {k: v[0] for k, v in parsed.items()}
-
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            self.wfile.write(b"Success!")
-
-    return Handler, response

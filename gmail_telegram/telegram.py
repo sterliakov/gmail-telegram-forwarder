@@ -1,20 +1,24 @@
 from __future__ import annotations
 
-import contextlib
 import logging
-from urllib.parse import quote
+from typing import TYPE_CHECKING, Any
+from urllib.parse import quote, urljoin
 
 import requests
 
 from . import config
 from .gmail_auth import request_new_credentials
+from .storage import User
+
+if TYPE_CHECKING:
+    from .gmail_read import MessageInfo
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 API_ROOT = f"https://api.telegram.org/bot{config.BOT_SECRET}"
 MESSAGE_TEMPLATE = """
-New email from {from}!
+New email from {from_}!
 
 # {subject}
 
@@ -23,69 +27,73 @@ Short extract:
 """
 
 
-def send_message_about_email(email):
+def send_message_about_email(email: MessageInfo, user: User) -> None:
     msg = MESSAGE_TEMPLATE.format(**email)
-    send_message(msg)
+    send_message(msg, user.chat_id)
 
 
-def handle_telegram_starts():
-    already_connected = (
-        config.CHAT_ID_FILE.exists() and config.GOOGLE_CREDS_FILE.exists()
-    )
-    api_url = f"{API_ROOT}/getUpdates"
-    with contextlib.suppress(FileNotFoundError):
-        api_url += "?offset=" + str(int(config.LATEST_TG_UPDATE_FILE.read_text()) + 1)
-    response = requests.get(api_url, timeout=10)
-    response.raise_for_status()
-    data = response.json()
-    if not data["ok"]:
-        raise RuntimeError("Failed to retrieve telegram updates")
-    result = data.get("result", [])
-    max_update_id = max((r["update_id"] for r in result), default=0)
-    config.LATEST_TG_UPDATE_FILE.write_text(str(max_update_id))
-    result = [r for r in result if r["message"]["text"] == "/start"]
-    chat_ids = {r["message"]["chat"]["id"] for r in result}
-    if len(result) > 1:
-        for chat_id in chat_ids:
-            send_message("Sorry, cannot connect now.", chat_id)
-        raise RuntimeError("Got several messages. Only one account can be in use.")
-    if result and already_connected:
-        LOGGER.warning("Got a new message, but an account is already connected.")
-        for chat_id in chat_ids:
-            send_message("Sorry, cannot connect now.", chat_id)
-        return True
-    if result:
-        message = result[0]["message"]
-        chat_id = message["chat"]["id"]
-        config.CHAT_ID_FILE.write_text(str(chat_id))
-        greet_user(chat_id)
-
-    return config.GOOGLE_CREDS_FILE.exists()
-
-
-def greet_user(chat_id):
-    if config.GOOGLE_CREDS_FILE.exists():
-        send_message("Congrats! You're all set now.")
-        return
-
-    creds_state_machine = request_new_credentials()
-    url = next(creds_state_machine)
-    send_message(f"Head to {url} to connect your GMail account.", chat_id)
-    next(creds_state_machine)
-    send_message("Congrats! You're all set now.", chat_id)
+def handle_telegram_starts(event: dict[str, Any]) -> None:
+    LOGGER.info("Message: %s", event)
+    match event:
+        case {"message": {"from": {"id": chat_id}, "text": text}}:
+            chat_id = str(chat_id)
+            if text.strip() != "/start":
+                send_message("Unknown command: I only understand /start.", chat_id)
+                return
+            user = active_user_for_chat(chat_id)
+            if user is None:
+                user = User(chat_id)
+                user.save()
+                url = request_new_credentials(user)
+                send_message(f"Head to {url} to connect your GMail account.", chat_id)
+            else:
+                send_message("Already connected!", chat_id)
+        case {"message": {"from": {"id": chat_id}}}:
+            chat_id = str(chat_id)
+            send_message("Unknown command: I only understand /start.", chat_id)
+            return
+        case {
+            "my_chat_member": {
+                "chat": {"id": chat_id},
+                "new_chat_member": {"status": "kicked"},
+            }
+        }:
+            chat_id = str(chat_id)
+            user = active_user_for_chat(chat_id)
+            if user is None:
+                LOGGER.warning("Requested disconnect for unknown chat %s", chat_id)
+            else:
+                LOGGER.info("Disconnecting %s...", chat_id)
+                user.delete()
+                LOGGER.info("Disconnected %s.", chat_id)
 
 
-def _as_url(message: str, chat_id=None) -> str:
-    if chat_id is None:
-        try:
-            chat_id = config.CHAT_ID_FILE.read_text()
-        except FileNotFoundError as exc:
-            raise RuntimeError("Chat not set up yet.") from exc
+def active_user_for_chat(chat_id: str) -> User | None:
+    try:
+        user = User.get(chat_id)
+        if user.gmail_auth is None:
+            return None
+    except User.DoesNotExist:
+        return None
+    else:
+        return user
 
+
+def _as_url(message: str, chat_id: str | int) -> str:
     return f"{API_ROOT}/sendMessage?chat_id={chat_id}&text={quote(message, safe='')}"
 
 
-def send_message(text, chat_id=None):
+def send_message(text: str, chat_id: str | int) -> None:
     url = _as_url(text, chat_id)
     requests.post(url, timeout=10).raise_for_status()
-    return {"result": "OK"}
+
+
+def create_webhook() -> None:
+    params: dict[str, Any] = {
+        "url": urljoin(config.HOST, "/tg-update/"),
+        "allowed_updates": ["message"],
+        "max_connections": 1,
+        "secret_token": config.TELEGRAM_AUTH_TOKEN,
+    }
+    response = requests.post(f"{API_ROOT}/setWebhook", params=params, timeout=10)
+    response.raise_for_status()

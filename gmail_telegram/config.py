@@ -1,26 +1,41 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
+from typing import Any, Final
+
+import boto3
 
 APP_ROOT = Path(__file__).parent.parent.resolve()
-TEMP_FILES_ROOT = APP_ROOT / ".temp_files"
 
-TEMP_FILES_ROOT.mkdir(exist_ok=True)
-CHAT_ID_FILE = TEMP_FILES_ROOT / "chat_id"
-LATEST_TG_UPDATE_FILE = TEMP_FILES_ROOT / "tg_polling"
-LOCK_FILE = TEMP_FILES_ROOT / "lock"
-GOOGLE_CREDS_FILE = TEMP_FILES_ROOT / "token.json"
-KNOWN_IDS_FILE = TEMP_FILES_ROOT / "known_ids"
 
-GOOGLE_APP_CREDS_FILE = APP_ROOT / "app_credentials.json"
+def _get_secret(secret_path: str) -> dict[str, Any]:
+    _secret_manager = boto3.client(service_name="secretsmanager")
+    response = _secret_manager.get_secret_value(SecretId=secret_path)
+    return json.loads(response["SecretString"])
 
-BOT_SECRET = os.getenv("BOT_SECRET")
-if BOT_SECRET is None:
-    raise RuntimeError("Bot secret must be set")
 
-HOST = os.getenv("GOOGLE_AUTH_HOST")
-if HOST is None:
-    raise RuntimeError("Host must be set")
+if os.getenv("DEBUG", "").lower() in {"true", "1"}:
+    _secret: dict[str, Any] = {
+        "telegram_auth_header": "temp",
+        "google_credentials": (APP_ROOT / "app_credentials.json").read_text(),
+        "bot_secret": os.getenv("BOT_SECRET"),
+        "host": os.getenv("HOST"),
+    }
+    if _secret["bot_secret"] is None:
+        raise RuntimeError("BOT_SECRET must me set")
+    if _secret["host"] is None:
+        raise RuntimeError("HOST must me set")
+else:
+    _secret_name = os.getenv("SECRET_NAME")
+    if not _secret_name:
+        raise RuntimeError("SECRET_NAME must be set")
+    _secret = _get_secret(_secret_name)
 
-PORT = int(os.getenv("GOOGLE_OAUTH_PORT", "9090"))
+TELEGRAM_AUTH_TOKEN: Final[str] = _secret["telegram_auth_header"]
+GOOGLE_APP_CREDS: Final[dict[str, Any]] = json.loads(_secret["google_credentials"])
+BOT_SECRET: Final[str] = _secret["bot_secret"]
+HOST: Final[str] = _secret["host"]
+
+GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]

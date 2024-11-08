@@ -1,31 +1,42 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
     -   id: check-merge-conflict
     -   id: check-executables-have-shebangs
+    -   id: check-shebang-scripts-are-executable
+    -   id: check-symlinks
+    -   id: mixed-line-ending
+        args: [--fix=lf]
     -   id: check-toml
     -   id: check-yaml
     -   id: check-json
     -   id: pretty-format-json
-        args: [--autofix, --indent, '4']
-
--   repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.5
-    hooks:
-    -   id: remove-crlf
+        args: [--autofix, --no-ensure-ascii]
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.2
+    rev: v0.7.2
     hooks:
     -   id: ruff-format
     -   id: ruff
         args: [--fix]
 
+-   repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.5.0
+    hooks:
+    -   id: uv-lock
+
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+    -   id: mypy
+        additional_dependencies:
+        -   types-requests
+
 -   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.12.0
+    rev: v2.14.0
     hooks:
     -   id: pretty-format-yaml
         args: [--autofix, --indent, '4']
@@ -33,17 +44,14 @@ repos:
         args: [--autofix, --indent, '4', --trailing-comma]
 
 -   repo: https://github.com/AleksaC/hadolint-py
-    rev: v2.12.0.3
+    rev: v2.12.1b3
     hooks:
     -   id: hadolint
         files: .*Dockerfile[^.]*(\.[^.]*)?$
 
--   repo: local
+-   repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.2
     hooks:
-    -   id: uv-pip-compile
-        name: Check requirements files
-        entry: uv pip compile requirements.in.txt -o requirements.txt -q
-        require_serial: true
-        language: python
-        additional_dependencies: [uv >= 0.1.21]
-        files: requirements.in.txt
+    -   id: terraform_validate
+    -   id: terraform_fmt
+    -   id: terraform_tflint

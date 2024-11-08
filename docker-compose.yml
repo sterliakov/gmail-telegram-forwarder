@@ -1,23 +1,17 @@
-version: '3.9'
-
 services:
     tg_forwarder:
         env_file: .env
-        image: tg_forwarder:latest
         build:
-            # Sorry for this - deployed as a "secondary" app on a server
-            # where main service has own compose file.
-            context: ../gmail_telegram
-            dockerfile: Dockerfile
-        networks:
-        -   djangonetwork
+            context: .
         restart: unless-stopped
-        volumes:
-        -   files_volume:/app/.temp_files
 
-networks:
-    djangonetwork:
-        driver: bridge
+    ddb:
+        image: amazon/dynamodb-local:latest
+        working_dir: /home/dynamodblocal
+        command: -jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data
+        user: root
+        volumes:
+        -   ddb:/home/dynamodblocal/data
 
 volumes:
-    files_volume:
+    ddb:
