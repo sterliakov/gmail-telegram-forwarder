@@ -28,7 +28,7 @@ class GmailRefreshError(Exception):
 
 def request_new_credentials(user: User) -> str:
     flow = _create_flow(user)
-    uri, _ = flow.authorization_url(access_type="offline")
+    uri, _ = flow.authorization_url(access_type="offline", prompt="consent")
     LOGGER.info("OAuth URL: %s", uri)
     return uri
 

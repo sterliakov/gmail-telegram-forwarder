@@ -49,8 +49,23 @@ def handle_telegram_starts(event: dict[str, Any]) -> None:
             else:
                 send_message("Already connected!", chat_id)
         case {"message": {"from": {"id": chat_id}}}:
+            chat_id = str(chat_id)
             send_message("Unknown command: I only understand /start.", chat_id)
             return
+        case {
+            "my_chat_member": {
+                "chat": {"id": chat_id},
+                "new_chat_member": {"status": "kicked"},
+            }
+        }:
+            chat_id = str(chat_id)
+            user = active_user_for_chat(chat_id)
+            if user is None:
+                LOGGER.warning("Requested disconnect for unknown chat %s", chat_id)
+            else:
+                LOGGER.info("Disconnecting %s...", chat_id)
+                user.delete()
+                LOGGER.info("Disconnected %s.", chat_id)
 
 
 def active_user_for_chat(chat_id: str) -> User | None:

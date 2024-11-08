@@ -16,7 +16,8 @@ SUCCESS_HTML_FILE: Final = Path(__file__).parent / "data" / "success.html"
 
 
 class TelegramMessage(BaseModel):
-    message: Any
+    message: Any = None
+    my_chat_member: Any = None
 
 
 @app.post("/tg-update/")
