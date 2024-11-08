@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "users" {
-  name           = "users"
+  name           = "tg-forwarder-users"
   billing_mode   = "PROVISIONED"
   read_capacity  = 5
   write_capacity = 5
@@ -12,7 +12,7 @@ resource "aws_dynamodb_table" "users" {
 }
 
 resource "aws_dynamodb_table" "messages" {
-  name           = "messages"
+  name           = "tg-forwarder-messages"
   billing_mode   = "PROVISIONED"
   read_capacity  = 5
   write_capacity = 5

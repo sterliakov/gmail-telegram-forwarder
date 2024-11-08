@@ -15,7 +15,7 @@ from pynamodb.models import Model
 
 class User(Model):
     class Meta:
-        table_name = "users"
+        table_name = "tg-forwarder-users"
 
     chat_id = UnicodeAttribute(hash_key=True)
     last_update = NumberAttribute(null=True)
@@ -24,7 +24,7 @@ class User(Model):
 
 class TransmittedMessages(Model):
     class Meta:
-        table_name = "messages"
+        table_name = "tg-forwarder-messages"
 
     day = UnicodeAttribute(null=True, hash_key=True)
     chat_id = UnicodeAttribute(range_key=True)
