@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-from typing import Annotated, Any
+from pathlib import Path
+from typing import Annotated, Any, Final
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from gmail_telegram import config
-from gmail_telegram.gmail_auth import handle_oauth_callback
-from gmail_telegram.telegram import handle_telegram_starts
+from . import config
+from .gmail_auth import handle_oauth_callback
+from .telegram import handle_telegram_starts, send_message
 
 app = FastAPI()
+SUCCESS_HTML_FILE: Final = Path(__file__).parent / "data" / "success.html"
 
 
 class TelegramMessage(BaseModel):
@@ -28,7 +31,8 @@ async def telegram_webhook(
     return {"success": True}
 
 
-@app.get("/google-oauth/")
+@app.get("/google-oauth/", response_class=HTMLResponse)
 async def google_callback(code: str, state: str) -> Any:
-    handle_oauth_callback(code, state)
-    return {"success": True}
+    user = handle_oauth_callback(code, state)
+    send_message("You're all set!", user.chat_id)
+    return HTMLResponse(SUCCESS_HTML_FILE.read_text())
