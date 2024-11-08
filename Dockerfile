@@ -8,7 +8,7 @@ RUN --mount=type=cache,target=/root/.cache \
     uv sync --no-dev --locked --no-install-project \
     && uv pip install --no-cache-dir 'setuptools >= 69.1.1'
 
-FROM source AS run
+FROM source AS deploy
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV PYTHONDONTWRITEBYTECODE=1

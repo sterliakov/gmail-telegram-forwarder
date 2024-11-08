@@ -17,11 +17,9 @@ def _get_secret(secret_path: str) -> dict[str, Any]:
 
 
 if os.getenv("DEBUG", "").lower() in {"true", "1"}:
-    _secret = {
+    _secret: dict[str, Any] = {
         "telegram_auth_header": "temp",
-        "google_credentials": json.loads(
-            (APP_ROOT / "app_credentials.json").read_text()
-        ),
+        "google_credentials": (APP_ROOT / "app_credentials.json").read_text(),
         "bot_secret": os.getenv("BOT_SECRET"),
         "host": os.getenv("HOST"),
     }
@@ -36,7 +34,7 @@ else:
     _secret = _get_secret(_secret_name)
 
 TELEGRAM_AUTH_TOKEN: Final[str] = _secret["telegram_auth_header"]
-GOOGLE_APP_CREDS: Final[dict[str, Any]] = _secret["google_credentials"]
+GOOGLE_APP_CREDS: Final[dict[str, Any]] = json.loads(_secret["google_credentials"])
 BOT_SECRET: Final[str] = _secret["bot_secret"]
 HOST: Final[str] = _secret["host"]
 

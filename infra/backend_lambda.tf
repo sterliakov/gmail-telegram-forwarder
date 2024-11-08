@@ -1,5 +1,12 @@
 data "aws_iam_policy_document" "lambda_execution_policy" {
   statement {
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+    resources = [aws_cloudwatch_log_group.main_logs.arn]
+  }
+  statement {
     actions   = ["secretsmanager:GetSecretValue"]
     resources = [aws_secretsmanager_secret.backend_main.arn]
   }
@@ -45,10 +52,6 @@ resource "aws_iam_role_policy_attachment" "be_lambda" {
   policy_arn = aws_iam_policy.lambda_policy.arn
   role       = aws_iam_role.lambda_role.name
 }
-resource "aws_iam_role_policy_attachment" "be_lambda_basic_managed" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  role       = aws_iam_role.lambda_role.name
-}
 
 resource "aws_lambda_function" "backend_main" {
   function_name = "tg-forwarder-backend"
@@ -69,6 +72,11 @@ resource "aws_lambda_function" "backend_main" {
     variables = {
       SECRET_NAME = aws_secretsmanager_secret.backend_main.name
     }
+  }
+
+  logging_config {
+    log_format = "Text"
+    log_group  = aws_cloudwatch_log_group.main_logs.name
   }
 
   depends_on = [module.ecr_repo_image]
