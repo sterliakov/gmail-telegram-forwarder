@@ -14,7 +14,7 @@ dependencies = [
     "fastapi>=0.115.4",
     "pydantic>=2.9.2",
     "mangum>=0.19.0",
-    "awslambdaric>=2.2.1",
+    "awslambdaric>3.0",
     "boto3>=1.35.56",
 ]
 description = "Forward incoming GMail emails to Telegram."
