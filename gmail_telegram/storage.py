@@ -28,7 +28,8 @@ class TransmittedMessages(Model):
 
     day = UnicodeAttribute(null=True, hash_key=True)
     chat_id = UnicodeAttribute(range_key=True)
-    ttl = TTLAttribute(default=timedelta(days=7))
+    # Stubs bug (type hint is wrong, see docstring and implementation)
+    ttl = TTLAttribute(default=timedelta(days=7))  # type: ignore[arg-type]
     email_ids = UnicodeSetAttribute(attr_name="ids")
 
 

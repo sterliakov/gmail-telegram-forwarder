@@ -1,88 +1,90 @@
 name: Deploy
 
 on:
-    workflow_dispatch:
-    push:
-        branches: [master]
+  workflow_dispatch:
 
 env:
-    ECR_REPOSITORY: tg-forwarder
-    DEPLOY_ROLE: arn:aws:iam::533267002298:role/tg-forwarder-deploy
-    LAMBDA_NAME: tg-forwarder-backend
-    LAMBDA_ALIAS: stable
-    DEPLOYED_TAG: deployed
+  ECR_REPOSITORY: tg-forwarder
+  DEPLOY_ROLE: arn:aws:iam::533267002298:role/tg-forwarder-deploy
+  LAMBDA_NAME: tg-forwarder-backend
+  LAMBDA_ALIAS: stable
+  DEPLOYED_TAG: deployed
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        permissions:
-            id-token: write
-            contents: read
-        steps:
-        -   uses: actions/checkout@v4
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       # Login
-        -   uses: aws-actions/configure-aws-credentials@v4
-            with:
-                role-to-assume: ${{ env.DEPLOY_ROLE }}
-                aws-region: us-east-1
-        -   uses: aws-actions/amazon-ecr-login@v2
-            id: ecr
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE }}
+          aws-region: us-east-1
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
 
-        -   id: install-aws-cli
-            uses: unfor19/install-aws-cli-action@v1
-            with:
-                version: 2
-                verbose: false
-                arch: amd64
+      - id: install-aws-cli
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+          verbose: false
+          arch: amd64
 
       # Build a container image
-        -   name: Set up Docker Buildx
-            uses: docker/setup-buildx-action@v3
-        -   uses: docker/build-push-action@v6
-            with:
-                push: true
-                tags: >-
-                    ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-                    ,${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.DEPLOYED_TAG }}
-                target: deploy
-                provenance: false
-                context: .
-                cache-from: type=gha
-                cache-to: type=gha,mode=max
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: >-
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            ,${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.DEPLOYED_TAG }}
+          target: deploy
+          provenance: false
+          context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # Deploy a function
-        -   name: Deploy
-            run: |
-                set -o pipefail
-                version=$(
-                    aws lambda update-function-code --publish \
-                    --function-name "${{ env.LAMBDA_NAME }}" \
-                    --image-uri "${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.DEPLOYED_TAG }}" \
-                    | jq -r '.Version'
-                )
-                aws lambda wait function-updated-v2 --function-name "${{ env.LAMBDA_NAME }}"
-                aws lambda wait function-active-v2 --function-name "${{ env.LAMBDA_NAME }}"
-                aws lambda update-alias \
-                    --name "${{ env.LAMBDA_ALIAS }}" \
-                    --function-name "${{ env.LAMBDA_NAME }}" \
-                    --function-version "$version"
+      - name: Deploy
+        run: |
+          set -o pipefail
+          version=$(
+              aws lambda update-function-code --publish \
+              --function-name "${{ env.LAMBDA_NAME }}" \
+              --image-uri "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ env.DEPLOYED_TAG }}" \
+              | jq -r '.Version'
+          )
+          aws lambda wait function-updated-v2 --function-name "${{ env.LAMBDA_NAME }}"
+          aws lambda wait function-active-v2 --function-name "${{ env.LAMBDA_NAME }}"
+          aws lambda update-alias \
+              --name "${{ env.LAMBDA_ALIAS }}" \
+              --function-name "${{ env.LAMBDA_NAME }}" \
+              --function-version "$version"
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
 
       # Create a webhook
-        -   name: Create a webhook
-            run: |
-                aws lambda invoke \
-                    --function-name "${{ env.LAMBDA_NAME }}" \
-                    --qualifier "${{ env.LAMBDA_ALIAS }}" \
-                    --invocation-type RequestResponse \
-                    --payload '{ "action": "CREATE_WEBHOOK" }' \
-                    --log-type Tail \
-                    --cli-binary-format raw-in-base64-out \
-                    out.txt
-                echo "Function output:"
-                jq <out.txt
-                success=$(jq -r '.success' <out.txt)
-                if [ "$success" != "true" ]; then
-                    echo "Webhook setup failed" >&2
-                    exit 1
-                fi
+      - name: Create a webhook
+        run: |
+          aws lambda invoke \
+              --function-name "${{ env.LAMBDA_NAME }}" \
+              --qualifier "${{ env.LAMBDA_ALIAS }}" \
+              --invocation-type RequestResponse \
+              --payload '{ "action": "CREATE_WEBHOOK" }' \
+              --log-type Tail \
+              --cli-binary-format raw-in-base64-out \
+              out.txt
+          echo "Function output:"
+          jq <out.txt
+          success=$(jq -r '.success' <out.txt)
+          if [ "$success" != "true" ]; then
+              echo "Webhook setup failed" >&2
+              exit 1
+          fi

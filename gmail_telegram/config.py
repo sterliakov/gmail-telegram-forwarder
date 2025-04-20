@@ -11,8 +11,8 @@ APP_ROOT = Path(__file__).parent.parent.resolve()
 
 
 def _get_secret(secret_path: str) -> dict[str, Any]:
-    _secret_manager = boto3.client(service_name="secretsmanager")
-    response = _secret_manager.get_secret_value(SecretId=secret_path)
+    secret_manager = boto3.client(service_name="secretsmanager")
+    response = secret_manager.get_secret_value(SecretId=secret_path)
     return json.loads(response["SecretString"])
 
 

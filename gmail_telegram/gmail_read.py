@@ -62,7 +62,7 @@ def _retrieve_message(message_id: str, creds: Credentials) -> RawMessage:
 
 
 def _parse_message(msg: RawMessage) -> MessageInfo:
-    # This conversion is not guaranted to be loseless (=name may be not unique?),
+    # This conversion is not guaranteed to be loseless (=name may be not unique?),
     # but we know that headers of interest are unique.
     headers = {h["name"]: h["value"] for h in msg["payload"]["headers"]}
     return {

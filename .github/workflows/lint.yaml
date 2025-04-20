@@ -1,49 +1,69 @@
 name: Lint and Test
 
 permissions:
-    contents: read
+  contents: read
 
 on:
-    pull_request:
-        branches: [master]
+  pull_request:
+  push:
+    branches: [master]
 
 jobs:
-    pre-commit:
-        name: Pre-commit hooks
-        runs-on: ubuntu-latest
-        steps:
-        -   uses: actions/checkout@v4
+  pre-commit:
+    name: Pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-        -   uses: actions/setup-python@v5
-            with:
-                python-version: '3.12'
-        -   uses: hashicorp/setup-terraform@v3
-        -   uses: terraform-linters/setup-tflint@v4
-            name: Setup TFLint
-            with:
-                tflint_version: latest
-        -   name: Init TFLint
-            run: tflint --init
-            env:
-                # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
-                GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: hashicorp/setup-terraform@v3
+      - uses: terraform-linters/setup-tflint@v4
+        name: Setup TFLint
+        with:
+          tflint_version: latest
+      - name: Init TFLint
+        run: tflint --init
+        env:
+          # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
+          GITHUB_TOKEN: ${{ github.token }}
 
-        -   uses: pre-commit/action@v3.0.1
-            with:
-                extra_args: --all-files --show-diff-on-failure
+      - uses: pre-commit/action@v3.0.1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    check-build:
-        name: Check docker build
-        runs-on: ubuntu-latest
-        steps:
-        -   uses: actions/checkout@v4
+  mypy:
+    name: mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+      - name: install deps
+        run: uv sync --no-install-project --dev
+      - name: run mypy
+        run: mypy gmail_telegram
 
-        -   name: Set up Docker Buildx
-            uses: docker/setup-buildx-action@v3
-        -   uses: docker/build-push-action@v6
-            with:
-                tags: dev
-                target: deploy
-                load: true
-                cache-from: type=gha
-                cache-to: type=gha,mode=max
+  check-build:
+    name: Check docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          tags: dev
+          target: deploy
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
