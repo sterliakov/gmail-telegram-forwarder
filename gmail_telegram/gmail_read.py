@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from email.utils import parsedate_to_datetime
-from typing import TYPE_CHECKING, Any, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from googleapiclient.discovery import build
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
-RawMessage: TypeAlias = Any
+RawMessage = Any
 
 
 class MessageInfo(TypedDict):
