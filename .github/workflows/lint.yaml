@@ -44,7 +44,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
       - name: install deps
         run: uv sync --no-install-project --dev
       - name: run mypy
