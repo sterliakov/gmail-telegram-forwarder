@@ -28,7 +28,7 @@ resource "aws_ecr_lifecycle_policy" "remove_old_versions" {
 
 module "ecr_repo_image" {
   source  = "sterliakov/ecr-image/aws"
-  version = "0.1.0"
+  version = "0.2.0"
 
   push_ecr_is_public = false
   push_repo_fqdn     = replace(aws_ecr_repository.backend_lambda.repository_url, "//.*$/", "") # remove everything after first slash
