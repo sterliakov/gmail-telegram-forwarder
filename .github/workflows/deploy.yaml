@@ -20,6 +20,8 @@ jobs:
             contents: read
         steps:
         -   uses: actions/checkout@v4
+            with:
+                persist-credentials: false
 
       # Login
         -   uses: aws-actions/configure-aws-credentials@v4
@@ -58,7 +60,7 @@ jobs:
                 version=$(
                     aws lambda update-function-code --publish \
                     --function-name "${{ env.LAMBDA_NAME }}" \
-                    --image-uri "${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.DEPLOYED_TAG }}" \
+                    --image-uri "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ env.DEPLOYED_TAG }}" \
                     | jq -r '.Version'
                 )
                 aws lambda wait function-updated-v2 --function-name "${{ env.LAMBDA_NAME }}"
@@ -67,6 +69,8 @@ jobs:
                     --name "${{ env.LAMBDA_ALIAS }}" \
                     --function-name "${{ env.LAMBDA_NAME }}" \
                     --function-version "$version"
+            env:
+                ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
 
       # Create a webhook
         -   name: Create a webhook
