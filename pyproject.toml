@@ -14,12 +14,12 @@ dependencies = [
     "fastapi>=0.115.4",
     "pydantic>=2.9.2",
     "mangum>=0.19.0",
-    "awslambdaric>=2.2.1",
+    "awslambdaric>3.0",
     "boto3>=1.35.56",
 ]
 description = "Forward incoming GMail emails to Telegram."
 name = "gmail_telegram"
-requires-python = ">=3.11.7"
+requires-python = ">=3.13"
 version = "0.1.0"
 
 [tool.mypy]
@@ -51,7 +51,7 @@ warn_unused_ignores = true
 
 [tool.ruff]
 preview = true
-target-version = 'py311'
+target-version = 'py313'
 
 [tool.ruff.analyze]
 detect-string-imports = true
@@ -79,7 +79,7 @@ extend-ignore = [
     "EM102",  # Exception must not use an f-string literal, assign to variable first
     "TRY003",  # Avoid specifying long messages outside the exception class
     "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
-    "TCH003",  # Move standard library import `XXX` into a type-checking block
+    "TC003",  # Move standard library import `XXX` into a type-checking block
     "ANN",  # Type hints
     "D",  # Docstrings
     "TD",  # To-do comment lints
