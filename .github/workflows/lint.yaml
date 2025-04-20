@@ -5,6 +5,7 @@ permissions:
 
 on:
   pull_request:
+  push:
     branches: [master]
 
 jobs:
@@ -31,8 +32,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: --all-files --show-diff-on-failure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   mypy:
     name: mypy
