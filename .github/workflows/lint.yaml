@@ -48,7 +48,7 @@ jobs:
       - name: install deps
         run: uv sync --no-install-project --dev
       - name: run mypy
-        run: mypy gmail_telegram
+        run: uv run mypy gmail_telegram
 
   check-build:
     name: Check docker build
