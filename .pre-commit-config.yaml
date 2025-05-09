@@ -24,7 +24,7 @@ repos:
         args: [--fix]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.2
+    rev: 0.7.3
     hooks:
       - id: uv-lock
 
@@ -70,6 +70,6 @@ repos:
           - github.com/wasilibs/go-shellcheck/cmd/shellcheck@v0.10.0
 
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: zizmor
