@@ -24,7 +24,7 @@ repos:
         args: [--fix]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.6
+    rev: 0.8.8
     hooks:
       - id: uv-lock
 
@@ -50,7 +50,7 @@ repos:
       - id: terraform_tflint
 
   - repo: https://github.com/adhtruong/mirrors-typos
-    rev: v1.35.2
+    rev: v1.35.3
     hooks:
       - id: typos
 
