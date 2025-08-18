@@ -1,9 +1,10 @@
 module "github_actions_deploy_lambda_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-github-oidc-role"
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role"
   version = "6.1.1"
 
-  name     = "tg-forwarder-deploy"
-  subjects = ["sterliakov/gmail-telegram-forwarder:*"]
+  name                   = "tg-forwarder-deploy"
+  enable_github_oidc     = true
+  oidc_wildcard_subjects = ["sterliakov/gmail-telegram-forwarder:*"]
   policies = {
     extra = aws_iam_policy.github_actions_deploy_lambda.arn
   }
