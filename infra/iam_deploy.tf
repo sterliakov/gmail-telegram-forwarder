@@ -1,6 +1,6 @@
 module "github_actions_deploy_lambda_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-github-oidc-role"
-  version = "5.60.0"
+  version = "6.1.1"
 
   name     = "tg-forwarder-deploy"
   subjects = ["sterliakov/gmail-telegram-forwarder:*"]
