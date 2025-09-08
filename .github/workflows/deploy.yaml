@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
 
       # Login
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ env.DEPLOY_ROLE }}
           aws-region: us-east-1
