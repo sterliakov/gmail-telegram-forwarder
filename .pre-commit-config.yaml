@@ -17,14 +17,14 @@ repos:
         args: [--autofix, --no-ensure-ascii]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.11
+    rev: v0.13.0
     hooks:
       - id: ruff-format
       - id: ruff
         args: [--fix]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.14
+    rev: 0.8.17
     hooks:
       - id: uv-lock
 
@@ -37,7 +37,7 @@ repos:
         args: [--autofix, --indent, '4', --trailing-comma]
 
   - repo: https://github.com/AleksaC/hadolint-py
-    rev: v2.12.1b3
+    rev: v2.13.1
     hooks:
       - id: hadolint
         files: .*Dockerfile[^.]*(\.[^.]*)?$
@@ -50,7 +50,7 @@ repos:
       - id: terraform_tflint
 
   - repo: https://github.com/adhtruong/mirrors-typos
-    rev: v1.35.6
+    rev: v1.36.2
     hooks:
       - id: typos
 
@@ -70,6 +70,6 @@ repos:
           - github.com/wasilibs/go-shellcheck/cmd/shellcheck@v0.10.0
 
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.12.1
+    rev: v1.13.0
     hooks:
       - id: zizmor
