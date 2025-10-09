@@ -24,7 +24,7 @@ repos:
         args: [--fix]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.0
+    rev: 0.9.1
     hooks:
       - id: uv-lock
 
@@ -43,7 +43,7 @@ repos:
         files: .*Dockerfile[^.]*(\.[^.]*)?$
 
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.101.0
+    rev: v1.101.1
     hooks:
       - id: terraform_validate
       - id: terraform_fmt
