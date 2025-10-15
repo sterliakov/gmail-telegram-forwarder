@@ -43,7 +43,7 @@ repos:
         files: .*Dockerfile[^.]*(\.[^.]*)?$
 
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.101.1
+    rev: v1.102.0
     hooks:
       - id: terraform_validate
       - id: terraform_fmt
@@ -70,6 +70,6 @@ repos:
           - github.com/wasilibs/go-shellcheck/cmd/shellcheck@v0.10.0
 
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.14.2
+    rev: v1.15.2
     hooks:
       - id: zizmor
