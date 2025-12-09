@@ -17,14 +17,14 @@ repos:
         args: [--autofix, --no-ensure-ascii]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.6
+    rev: v0.14.8
     hooks:
       - id: ruff-format
       - id: ruff
         args: [--fix]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.13
+    rev: 0.9.16
     hooks:
       - id: uv-lock
 
@@ -70,6 +70,6 @@ repos:
           - github.com/wasilibs/go-shellcheck/cmd/shellcheck@v0.11.1
 
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.17.0
+    rev: v1.18.0
     hooks:
       - id: zizmor
