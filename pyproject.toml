@@ -90,6 +90,8 @@ extend-ignore = [
     "E501",  # Let black care about line width, if not splitable - go on
     # conflicts with ruff-fmt
     "COM812",
+    # conflicts with my personal opinion
+    "RUF067",  # `__init__` module should only contain docstrings and re-exports
 ]
 extend-safe-fixes = ["F401"]
 select = ['ALL']
