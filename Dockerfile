@@ -1,4 +1,4 @@
-FROM python:3.13-slim AS source
+FROM python:3.14-slim AS source
 
 FROM source AS build
 WORKDIR /
