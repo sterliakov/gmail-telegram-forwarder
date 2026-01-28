@@ -1,6 +1,6 @@
 module "github_actions_deploy_lambda_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role"
-  version = "6.3.0"
+  version = "6.4.0"
 
   name                   = "tg-forwarder-deploy"
   enable_github_oidc     = true
